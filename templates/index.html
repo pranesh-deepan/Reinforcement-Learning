@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Collection — Reinforcement Learning</title>
+    <meta name="description" content="Interactive Smart Waste Collection simulation using Q-Learning and SARSA reinforcement learning algorithms. Configure environments, train agents, and compare performance.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ============================================================
+     TOAST NOTIFICATION
+============================================================ -->
+<div id="global-message" class="global-message" role="alert" aria-live="polite"></div>
+
+<!-- ============================================================
+     APP WRAPPER
+============================================================ -->
+<div class="app-wrapper">
+
+    <!-- ========================================================
+         HEADER
+    ========================================================= -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="header-brand">
+                <div class="brand-icon">&#128465;</div>
+                <div>
+                    <h1>Smart Waste Collection</h1>
+                    <p>Reinforcement Learning Route Optimization</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span id="env-badge" class="badge badge-gray">NO ENVIRONMENT</span>
+                <span id="training-status" class="badge badge-gray">NOT TRAINED</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================
+         MAIN CONTENT
+    ========================================================= -->
+    <main class="main-content">
+
+        <!-- ====================================================
+             SECTION 1: ENVIRONMENT BUILDER
+        ===================================================== -->
+        <section class="card builder-card" id="section-builder">
+
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="step-badge">1</div>
+                    <div>
+                        <h2>Environment Configuration</h2>
+                        <p>Design your waste collection grid</p>
+                    </div>
+                </div>
+                <div class="grid-selector">
+                    <label for="grid-size">Grid Size:</label>
+                    <select id="grid-size">
+                        <option value="6">6 x 6</option>
+                        <option value="8">8 x 8</option>
+                        <option value="10" selected>10 x 10</option>
+                        <option value="12">12 x 12</option>
+                        <option value="15">15 x 15</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="builder-body">
+
+                <!-- Toolbar -->
+                <div class="toolbar" role="toolbar" aria-label="Environment builder tools">
+                    <button class="tool active" data-tool="depot" id="tool-depot">
+                        &#127981; Depot
+                    </button>
+                    <button class="tool" data-tool="bin" id="tool-bin">
+                        &#128465; Bin
+                    </button>
+                    <button class="tool" data-tool="obstacle" id="tool-obstacle">
+                        &#129507; Obstacle
+                    </button>
+                    <button class="tool" data-tool="erase" id="tool-erase">
+                        &#129529; Erase
+                    </button>
+                </div>
+
+                <!-- Builder layout -->
+                <div class="builder-layout">
+
+                    <!-- Map -->
+                    <div class="map-wrapper">
+                        <div id="map" aria-label="Environment grid builder"></div>
+                    </div>
+
+                    <!-- Builder sidebar -->
+                    <div class="builder-sidebar">
+
+                        <div class="sidebar-stats">
+                            <h3>Environment Stats</h3>
+                            <div class="stat-row">
+                                <span>Grid Size</span>
+                                <strong id="grid-count">10 x 10</strong>
+                            </div>
+                            <div class="stat-row">
+                                <span>Depot</span>
+                                <strong id="depot-count">Not Set</strong>
+                            </div>
+                            <div class="stat-row">
+                                <span>Waste Bins</span>
+                                <strong id="bin-count">0</strong>
+                            </div>
+                            <div class="stat-row">
+                                <span>Obstacles</span>
+                                <strong id="obstacle-count">0</strong>
+                            </div>
+                        </div>
+
+                        <div class="builder-legend">
+                            <h3>Legend</h3>
+                            <div class="legend-item"><div class="legend-swatch swatch-depot">&#127981;</div><span>Depot</span></div>
+                            <div class="legend-item"><div class="legend-swatch swatch-bin">&#128465;</div><span>Waste Bin</span></div>
+                            <div class="legend-item"><div class="legend-swatch swatch-obstacle">&#129507;</div><span>Obstacle</span></div>
+                            <div class="legend-item"><div class="legend-swatch swatch-empty"></div><span>Free Cell</span></div>
+                        </div>
+
+                        <div class="builder-hint" id="builder-message">
+                            Select a tool and click the grid to build your environment.
+                        </div>
+
+                        <button id="create-environment" class="btn btn-primary btn-full">
+                            CREATE ENVIRONMENT
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             SECTION 2: TRAINING
+        ===================================================== -->
+        <section class="card training-card" id="section-training">
+
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="step-badge">2</div>
+                    <div>
+                        <h2>Training</h2>
+                        <p>Train Q-Learning and SARSA on your custom environment</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="training-body">
+
+                <div class="training-controls">
+                    <button id="train-button" class="btn btn-green btn-train" disabled>
+                        Train Q-Learning + SARSA
+                    </button>
+                    <div class="training-info" id="training-message">
+                        Create an environment first, then click Train.
+                    </div>
+                </div>
+
+                <div class="algorithm-results" id="training-results" style="display:none;">
+                    <div class="algo-result-card algo-q">
+                        <div class="algo-label">Q-Learning</div>
+                        <div class="algo-stat-row">
+                            <span>Episodes</span>
+                            <strong id="q-episodes">0</strong>
+                        </div>
+                        <div class="algo-stat-row">
+                            <span>Final Reward</span>
+                            <strong id="q-final-reward">0</strong>
+                        </div>
+                        <div class="algo-stat-row">
+                            <span>States Learned</span>
+                            <strong id="q-states">0</strong>
+                        </div>
+                    </div>
+                    <div class="algo-result-card algo-sarsa">
+                        <div class="algo-label">SARSA</div>
+                        <div class="algo-stat-row">
+                            <span>Episodes</span>
+                            <strong id="sarsa-episodes">0</strong>
+                        </div>
+                        <div class="algo-stat-row">
+                            <span>Final Reward</span>
+                            <strong id="sarsa-final-reward">0</strong>
+                        </div>
+                        <div class="algo-stat-row">
+                            <span>States Learned</span>
+                            <strong id="sarsa-states">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             SECTION 3: SIMULATION
+        ===================================================== -->
+        <section class="card simulation-card" id="section-simulation">
+
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="step-badge">3</div>
+                    <div>
+                        <h2>Simulation</h2>
+                        <p>Watch the trained agent navigate the environment</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="simulation-body">
+
+                <!-- Left: map + instruction -->
+                <div class="sim-map-area">
+
+                    <div class="sim-map-toolbar">
+                        <div class="sim-legend">
+                            <span class="sim-legend-item"><span class="sim-dot dot-vehicle"></span> Vehicle</span>
+                            <span class="sim-legend-item"><span class="sim-dot dot-q-path"></span> Q-Learning Path</span>
+                            <span class="sim-legend-item"><span class="sim-dot dot-sarsa-path"></span> SARSA Path</span>
+                            <span class="sim-legend-item"><span class="sim-dot dot-both-path"></span> Both Paths</span>
+                        </div>
+                    </div>
+
+                    <div class="map-wrapper">
+                        <div id="simulation-map" aria-label="Simulation grid"></div>
+                    </div>
+
+                    <p class="simulation-instruction" id="simulation-instruction">
+                        Train the algorithms, then click a valid cell on the map to set the starting position.
+                    </p>
+
+                </div>
+
+                <!-- Right: control panel -->
+                <div class="sim-control-panel">
+
+                    <!-- Algorithm selector -->
+                    <div class="control-group">
+                        <label for="algorithm" class="control-label">Algorithm</label>
+                        <select id="algorithm" class="control-select">
+                            <option value="q_learning">Q-Learning</option>
+                            <option value="sarsa">SARSA</option>
+                        </select>
+                    </div>
+
+                    <!-- Starting position -->
+                    <div class="control-group">
+                        <label class="control-label">Start Position</label>
+                        <div class="info-pill">
+                            <span>Selected:</span>
+                            <strong id="position-status">Not selected</strong>
+                        </div>
+                    </div>
+
+                    <!-- Live stats -->
+                    <div class="control-group">
+                        <label class="control-label">Live Stats</label>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span>Algorithm</span>
+                                <strong id="algorithm-status">-</strong>
+                            </div>
+                            <div class="stat-card">
+                                <span>Position</span>
+                                <strong id="current-position-status">-</strong>
+                            </div>
+                            <div class="stat-card">
+                                <span>Steps</span>
+                                <strong id="step-status">0</strong>
+                            </div>
+                            <div class="stat-card">
+                                <span>Step Reward</span>
+                                <strong id="reward-status">0</strong>
+                            </div>
+                            <div class="stat-card">
+                                <span>Total Reward</span>
+                                <strong id="total-reward-status">0</strong>
+                            </div>
+                            <div class="stat-card">
+                                <span>Bins Collected</span>
+                                <strong id="bins-status">0 / 0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="control-group">
+                        <label class="control-label">Controls</label>
+                        <div class="control-buttons">
+                            <button id="start-button" class="btn btn-green btn-full" disabled>
+                                Start Simulation
+                            </button>
+                            <button id="step-button" class="btn btn-blue btn-full" disabled>
+                                Next Step
+                            </button>
+                            <button id="auto-button" class="btn btn-purple btn-full" disabled>
+                                Auto Run
+                            </button>
+                            <button id="reset-button" class="btn btn-gray btn-full">
+                                Reset Simulation
+                            </button>
+                            <button id="clear-paths-button" class="btn btn-outline btn-full">
+                                Clear Paths
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- How to use -->
+                    <div class="help-box">
+                        <strong>How to use</strong>
+                        <ol>
+                            <li>Create an environment (Step 1)</li>
+                            <li>Train both algorithms (Step 2)</li>
+                            <li>Select Q-Learning or SARSA</li>
+                            <li>Click a valid cell on the map</li>
+                            <li>Click Start Simulation</li>
+                            <li>Use Next Step or Auto Run</li>
+                            <li>Reset and run the other algorithm</li>
+                            <li>Compare results in Section 4</li>
+                        </ol>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             SECTION 4: COMPARISON
+        ===================================================== -->
+        <section class="card comparison-card" id="section-comparison">
+
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="step-badge">4</div>
+                    <div>
+                        <h2>Q-Learning vs SARSA Comparison</h2>
+                        <p>Side-by-side measured results from your environment</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comparison-body">
+
+                <div class="comparison-table-wrapper">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th class="col-q">Q-Learning</th>
+                                <th class="col-sarsa">SARSA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Training Episodes</td>
+                                <td id="cmp-q-episodes">-</td>
+                                <td id="cmp-sarsa-episodes">-</td>
+                            </tr>
+                            <tr>
+                                <td>Final Training Reward</td>
+                                <td id="cmp-q-train-reward">-</td>
+                                <td id="cmp-sarsa-train-reward">-</td>
+                            </tr>
+                            <tr>
+                                <td>Simulation Steps</td>
+                                <td id="cmp-q-steps">-</td>
+                                <td id="cmp-sarsa-steps">-</td>
+                            </tr>
+                            <tr>
+                                <td>Total Reward</td>
+                                <td id="cmp-q-reward">-</td>
+                                <td id="cmp-sarsa-reward">-</td>
+                            </tr>
+                            <tr>
+                                <td>Path Length</td>
+                                <td id="cmp-q-path">-</td>
+                                <td id="cmp-sarsa-path">-</td>
+                            </tr>
+                            <tr>
+                                <td>Bins Collected</td>
+                                <td id="cmp-q-bins">-</td>
+                                <td id="cmp-sarsa-bins">-</td>
+                            </tr>
+                            <tr>
+                                <td>Completed</td>
+                                <td id="cmp-q-completed">-</td>
+                                <td id="cmp-sarsa-completed">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="algo-descriptions">
+                    <div class="algo-desc-card algo-desc-q">
+                        <h3>Q-Learning</h3>
+                        <p class="algo-tag">Off-Policy</p>
+                        <p>Updates using the <strong>maximum</strong> estimated next-state action value, regardless of which action the agent actually takes. Learns the optimal policy while still exploring.</p>
+                        <code>Q(s,a) = Q(s,a) + alpha * [r + gamma * max Q(s',a') - Q(s,a)]</code>
+                    </div>
+                    <div class="algo-desc-card algo-desc-sarsa">
+                        <h3>SARSA</h3>
+                        <p class="algo-tag">On-Policy</p>
+                        <p>Updates using the <strong>actually selected</strong> next action's Q-value. The policy used for learning matches the policy used for action selection, making it more conservative.</p>
+                        <code>Q(s,a) = Q(s,a) + alpha * [r + gamma * Q(s',a') - Q(s,a)]</code>
+                    </div>
+                </div>
+
+                <div class="comparison-note">
+                    <strong>Note:</strong> Results shown are from actual agent-environment interaction on your configured environment.
+                    Both algorithms use the same starting position for a fair comparison.
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        <p>Smart Waste Collection &mdash; Q-Learning &amp; SARSA Reinforcement Learning</p>
+    </footer>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
